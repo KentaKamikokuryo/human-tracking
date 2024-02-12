@@ -32,3 +32,21 @@ pip3 install cython_bbox
 pip3 install faiss-cpu
 pip3 install faiss-gpu
 ```
+
+### Download Models
+Download and store the traiend models in 'pretrained' folder as follows
+```shell
+<BoT-SORT_dir>/pretrained
+```
+
+**[YOLOX (BBox detection)](https://github.com/Megvii-BaseDetection/YOLOX?tab=readme-ov-file)**   
+**[ByteTrack](https://github.com/ifzhang/ByteTrack?tab=readme-ov-file)**   
+**[ReID model (MOT20)](https://drive.google.com/file/d/1KqPQyj6MFyftliBHEIER7m_OrGpcrJwi/view)**   
+
+## MMDet
+```shell
+pip install -U openmim
+mim install mmengine
+mim install "mmcv>=2.0.0"
+mim install mmdet[tracking]
+```
