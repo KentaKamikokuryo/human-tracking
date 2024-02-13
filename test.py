@@ -1,5 +1,3 @@
 # test code
-print("Hello World")
-print("Hello World")
-print("Hello World")
-print("Hello World")
+from fast_reid.fast_reid_interface import FastReIDInterface
+
