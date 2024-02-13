@@ -6,7 +6,7 @@ from mmdet.apis import init_detector, inference_detector
 
 model_names = ["YOLOX", "DINO", "Pedestron"]
 
-class ModelBoxDetectionMMDet:
+class BoxDetectionMMDet:
 
     def __init__(
         self,

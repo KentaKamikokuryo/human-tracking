@@ -52,7 +52,7 @@ class KalmanFilter(object):
         self._std_weight_position = 1. / 20
         self._std_weight_velocity = 1. / 160
 
-    def initiate(self, measurement):
+    def initiate(self, measurement: np.ndarray):
         """Create track from unassociated measurement.
 
         Parameters
@@ -71,7 +71,7 @@ class KalmanFilter(object):
         """
         mean_pos = measurement
         mean_vel = np.zeros_like(mean_pos)
-        mean = np.r_[mean_pos, mean_vel]
+        mean: np.ndarray = np.r_[mean_pos, mean_vel]
 
         std = [
             2 * self._std_weight_position * measurement[2],
@@ -85,7 +85,7 @@ class KalmanFilter(object):
         covariance = np.diag(np.square(std))
         return mean, covariance
 
-    def predict(self, mean, covariance):
+    def predict(self, mean: np.ndarray, covariance: np.ndarray):
         """Run Kalman filter prediction step.
 
         Parameters
@@ -122,7 +122,7 @@ class KalmanFilter(object):
 
         return mean, covariance
 
-    def project(self, mean, covariance):
+    def project(self, mean: np.ndarray, covariance: np.ndarray):
         """Project state distribution to measurement space.
 
         Parameters
@@ -190,7 +190,7 @@ class KalmanFilter(object):
 
         return mean, covariance
 
-    def update(self, mean, covariance, measurement):
+    def update(self, mean: np.ndarray, covariance: np.ndarray, measurement: np.ndarray):
         """Run Kalman filter correction step.
 
         Parameters
