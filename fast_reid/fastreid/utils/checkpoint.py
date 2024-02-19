@@ -113,8 +113,10 @@ class Checkpointer(object):
         if not path:
             # no checkpoint provided
             self.logger.info("No checkpoint found. Training model from scratch")
+            print  ("No checkpoint found. Training model from scratch")
             return {}
         self.logger.info("Loading checkpoint from {}".format(path))
+        print("Loading checkpoint from {}".format(path))
         if not os.path.isfile(path):
             path = self.path_manager.get_local_path(path)
             assert os.path.isfile(path), "Checkpoint {} not found!".format(path)

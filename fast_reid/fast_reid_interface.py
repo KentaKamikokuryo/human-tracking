@@ -1,4 +1,6 @@
+import sys
 import cv2
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -11,6 +13,43 @@ from fast_reid.fastreid.utils.checkpoint import Checkpointer
 from fast_reid.fastreid.engine import DefaultTrainer, default_argument_parser, default_setup, launch
 
 # cudnn.benchmark = True
+
+class FastReIDModelType:
+    
+    MOT17 = "MOT17"
+    MOT20 = "MOT20"
+    Market1501 = "Market1501"
+    
+    def __init__(self, path_model: str, model_type: str):
+        self.path_model: str = path_model
+        self.model_type: str = model_type
+        
+        model_dict = {
+            "MOT17": {
+                "config": os.path.join(path_model, "fast_reid/configs/MOT17/sbs_S50.yml"),
+                "checkpoint": os.path.join(path_model, "fast_reid/mot17_sbs_S50.pth")
+            }, 
+            "MOT20": {
+                "config": os.path.join(path_model, "fast_reid/configs/MOT20/sbs_S50.yml"),
+                "checkpoint": os.path.join(path_model, "fast_reid/mot20_sbs_S50.pth")
+            },
+            "Market1501": {
+                "config": os.path.join(path_model, "fast_reid/configs/Market1501/bagtricks_R101-ibn.yml"),
+                "checkpoint": os.path.join(path_model, "fast_reid/market_bot_R101-ibn.pth")
+            
+            }
+        }
+        self.config_file: str = model_dict[model_type]["config"]
+        self.checkpoint_file: str = model_dict[model_type]["checkpoint"]
+        
+        # Check if the file exists
+        if not os.path.exists(self.config_file):
+            print(f"Error: Config file {self.config_file} does not exist")
+            sys.exit(1)
+        
+        if not os.path.exists(self.checkpoint_file):
+            print(f"Error: Checkpoint file {self.checkpoint_file} does not exist")
+            sys.exit(1)
 
 
 def setup_cfg(config_file, opts):
@@ -141,10 +180,13 @@ class FastReIDInterface:
                         patch_np = torch.permute(patch_np, (1, 2, 0)).int()
                         patch_np = patch_np.numpy()
 
-                        plt.figure()
-                        plt.imshow(patch_np)
-                        plt.show()
+                        # plt.figure()
+                        # plt.imshow(patch_np)
+                        # plt.show()
 
             features = np.vstack((features, feat))
 
         return features
+    
+    def __repr__(self) -> str:
+        return f"FastReIDInterface(config_file={self.cfg}, device={self.device}, batch_size={self.batch_size})"

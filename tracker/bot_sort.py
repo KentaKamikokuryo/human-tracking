@@ -1,6 +1,5 @@
 import copy
 from typing import List
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import deque
@@ -16,7 +15,7 @@ from fast_reid.fast_reid_interface import FastReIDInterface
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
 
-    def __init__(self, tlwh, score, feature_history: int=50, body_feature: np.ndarray=None):
+    def __init__(self, tlwh, score, body_feature: np.ndarray=None, feature_history: int=300):
         """STrack
 
         Parameters
@@ -45,7 +44,7 @@ class STrack(BaseTrack):
         self.alpha = 0.9
         self.feature_history = feature_history
                 
-        # Body feature
+        # Body feature information
         self.body_smooth_feature = None
         self.body_curr_feature = None
         self.body_features = deque([], maxlen=feature_history)
@@ -129,7 +128,6 @@ class STrack(BaseTrack):
         if new_id:
             self.track_id = self.next_id()
         self.score = new_track.score
-        self.body = new_track.body
 
     def update(self, new_track, frame_id: int):
         """
@@ -148,14 +146,11 @@ class STrack(BaseTrack):
 
         if new_track.body_curr_feature is not None:
             self.update_body_features(new_track.body_curr_feature)
-        if new_track.face_curr_feature is not None:
-            self.update_face_features(new_track.face_curr_feature)
 
         self.state = TrackState.Tracked
         self.is_activated = True
 
         self.score = new_track.score
-        self.body = new_track.body
 
     def propagate_trackid_to_related_objects(self):
         if self.body is not None:
@@ -254,7 +249,8 @@ class BoTSORT(object):
 
         self.track_high_thresh: float = .4  # tracking confidence threshold Deafult: 0.4 
         self.track_low_thresh: float = .1  # lowest detection threshold valid for tracks Default: 0.1
-        self.new_track_thresh: float = .9  # detection threshold to create a new track Default: 0.9
+        self.new_track_thresh: float = .8  # detection threshold to create a new track Default: 0.9
+        self.match_thresh: float = .5  # tracking threshold Default: 0.8
         self.feature_history: int = 300  # the frames for keep features Default: 50
         # ReID module
         self.proximity_thresh:float = .5 # threshold for rejecting low overlap reid matches Default: 0.5
@@ -281,7 +277,7 @@ class BoTSORT(object):
         
         debug_image = copy.deepcopy(img)
         
-        # Onject detection ====================================================
+        # Object detection ====================================================
         detected_boxes = self.detector(debug_image)
 
         if len(detected_boxes) > 0:
@@ -314,11 +310,11 @@ class BoTSORT(object):
         features_keep = self.encoder.inference(img, dets)
 
         if len(dets) > 0:
-          '''Detections'''
-          detections = [STrack(STrack.tlbr_to_tlwh(tlbr), s, f) for
-                        (tlbr, s, f) in zip(dets, scores_keep, features_keep)]
+            '''Detections'''
+            detections = [STrack(STrack.tlbr_to_tlwh(tlbr), s, f) for
+                            (tlbr, s, f) in zip(dets, scores_keep, features_keep)]
         else:
-          detections = []
+            detections = []
 
         ''' Add newly detected tracklets to tracked_stracks'''
         unconfirmed = []
@@ -353,7 +349,7 @@ class BoTSORT(object):
         emb_dists[ious_dists_mask] = 1.0
         dists = np.minimum(ious_dists, emb_dists)
 
-        matches, u_track, u_detection = matching.linear_assignment(dists, thresh=self.args.match_thresh)
+        matches, u_track, u_detection = matching.linear_assignment(dists, thresh=self.match_thresh)
 
         for itracked, idet in matches:
             track: STrack = strack_pool[itracked]
@@ -458,6 +454,10 @@ class BoTSORT(object):
 
         return output_stracks
 
+    def __repr__(self) -> str:
+        format_str = self.__class__.__name__
+        format_str += f'(tracked_stracks={len(self.tracked_stracks)}, lost_stracks={len(self.lost_stracks)}, removed_stracks={len(self.removed_stracks)})'
+        return format_str
 
 def joint_stracks(tlista: List[STrack], tlistb: List[STrack]):
     exists = {}

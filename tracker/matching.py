@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import scipy
 import lap
@@ -35,7 +36,7 @@ def _indices_to_matches(cost_matrix, indices, thresh):
     return matches, unmatched_a, unmatched_b
 
 
-def linear_assignment(cost_matrix, thresh):
+def linear_assignment(cost_matrix, thresh: float):
     if cost_matrix.size == 0:
         return np.empty((0, 2), dtype=int), tuple(range(cost_matrix.shape[0])), tuple(range(cost_matrix.shape[1]))
     matches, unmatched_a, unmatched_b = [], [], []
@@ -136,8 +137,8 @@ def embedding_distance(tracks, detections, metric='cosine'):
     cost_matrix = np.zeros((len(tracks), len(detections)), dtype=np.float)
     if cost_matrix.size == 0:
         return cost_matrix
-    det_features = np.asarray([track.curr_feat for track in detections], dtype=np.float)
-    track_features = np.asarray([track.smooth_feat for track in tracks], dtype=np.float)
+    det_features = np.asarray([track.body_curr_feature for track in detections], dtype=np.float)
+    track_features = np.asarray([track.body_smooth_feature for track in tracks], dtype=np.float)
 
     cost_matrix = np.maximum(0.0, cdist(track_features, det_features, metric))  # / 2.0  # Nomalized features
     return cost_matrix
