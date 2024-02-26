@@ -18,30 +18,30 @@ def is_parsable_to_int(s):
   except ValueError:
     return False
 
-disable_video_writer = True
-video = os.path.join(os.path.dirname(__file__), "videos/video1.avi")
+disable_video_writer = False
+video_name = "video4"
+video = os.path.join(os.path.dirname(__file__), ".videos/" + video_name + ".mp4")
 
 # Set the path to the pretrained model
 path_model = os.path.join(os.path.dirname(__file__), "pretrained")
-print(path_model)
 
 # Set the path to the config and checkpoint files for the box detection model
 print("Setting up box model")
 box_model_type = BoxModelType(path_model, BoxModelType.YOLOX)
 box_config_file = box_model_type.config_file
 box_checkpoint_file = box_model_type.checkpoint_file
-box_detection = BoxDetectionMMDet(box_config_file, box_checkpoint_file, threshold=0.5)
+box_detection = BoxDetectionMMDet(box_config_file, box_checkpoint_file, threshold=0.9)
 
 # Set the path to the config and checkpoint files for the re-identification model
 print("Setting up reid model")
-fast_reid_model_type = FastReIDModelType(path_model, FastReIDModelType.Market1501)
+fast_reid_model_type = FastReIDModelType(path_model, FastReIDModelType.DukeMTMC)
 reid_config_file = fast_reid_model_type.config_file
 reid_checkpoint_file = fast_reid_model_type.checkpoint_file
 body_feature_extractor = FastReIDInterface(reid_config_file, reid_checkpoint_file, device="cuda" if torch.cuda.is_available() else "cpu", batch_size=8)
 
 # Model initialization
 print("Initializing models...")
-bot_sort = BoTSORT(box_detection, body_feature_extractor, frame_rate=30)
+bot_sort = BoTSORT(box_detection, body_feature_extractor, frame_rate=60)
 
 def main():
   # cv2.VideoCapture object
@@ -53,7 +53,7 @@ def main():
       
       fourcc = cv2.VideoWriter_fourcc(*"mp4v")
       video_writer = cv2.VideoWriter(
-        "output.mp4", 
+        ".output/" + video_name + ".mp4", 
         fourcc, 
         cap_fps, 
         (w, h)
@@ -63,12 +63,11 @@ def main():
 
   while cap.isOpened():
       ret, frame = cap.read()
-      print(ret)
       if not ret:
-          print("Error: Failed to capture image")
           break
       
       debug_image = copy.deepcopy(frame)
+      # debug_image = cv2.resize(debug_image, (debug_image.shape[1] // 2, debug_image.shape[0] // 2))
       debug_image_h = debug_image.shape[0]
       debug_image_w = debug_image.shape[1]
       
@@ -99,10 +98,13 @@ def main():
           
   if video_writer is not None:
     video_writer.release() 
+    print(f"Output video saved to .output/{video_name}.mp4")
 
   if cap is not None:
     cap.release()
+    print("Capture released")
   
 
 if __name__ == "__main__":
   main()
+  print("Done")

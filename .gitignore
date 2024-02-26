@@ -1,4 +1,5 @@
 **/__pycache__/**
 
 pretrained
-videos
+.videos
+.output

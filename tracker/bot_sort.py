@@ -232,13 +232,13 @@ class STrack(BaseTrack):
 
 
 class BoTSORT(object):
-  
+
     def __init__(
-      self, 
-      object_detection_model, 
-      body_feature_extractor_model,
-      frame_rate=30
-      ):
+        self, 
+        object_detection_model, 
+        body_feature_extractor_model,
+        frame_rate=60
+    ):
 
         self.tracked_stracks = []  # type: list[STrack]
         self.lost_stracks = []  # type: list[STrack]
@@ -247,16 +247,16 @@ class BoTSORT(object):
 
         self.frame_id = 0
 
-        self.track_high_thresh: float = .4  # tracking confidence threshold Deafult: 0.4 
-        self.track_low_thresh: float = .1  # lowest detection threshold valid for tracks Default: 0.1
-        self.new_track_thresh: float = .8  # detection threshold to create a new track Default: 0.9
+        self.track_high_thresh: float = .8  # tracking confidence threshold Deafult: 0.4 
+        self.track_low_thresh: float = .7  # lowest detection threshold valid for tracks Default: 0.1
+        self.new_track_thresh: float = .9  # detection threshold to create a new track Default: 0.9
         self.match_thresh: float = .5  # tracking threshold Default: 0.8
-        self.feature_history: int = 300  # the frames for keep features Default: 50
+        self.feature_history: int = 50  # the frames for keep features Default: 50
         # ReID module
         self.proximity_thresh:float = .5 # threshold for rejecting low overlap reid matches Default: 0.5
         self.appearance_thresh:float = .25 # threshold for erjecting low appearance similarity reid matches Default: 0.25
 
-        self.track_buffer: int = 300 # the frames for keep lost tracks Default: 30
+        self.track_buffer: int = 30 # the frames for keep lost tracks Default: 30
         self.buffer_size: int = int(frame_rate / 30.0 * self.track_buffer)
         self.max_time_lost: int = self.buffer_size
         self.kalman_filter: KalmanFilter = KalmanFilter()
@@ -268,12 +268,13 @@ class BoTSORT(object):
         self.encoder: FastReIDInterface = body_feature_extractor_model
 
     def update(self, img):
-      
+        
+        # Increase frame id and clear the lost tracks
         self.frame_id += 1
-        activated_starcks = []
-        refind_stracks = []
-        lost_stracks = []
-        removed_stracks = []
+        activated_starcks: List[STrack] = []
+        refind_stracks: List[STrack] = []
+        lost_stracks: List[STrack] = []
+        removed_stracks: List[STrack] = []
         
         debug_image = copy.deepcopy(img)
         
@@ -281,7 +282,7 @@ class BoTSORT(object):
         detected_boxes = self.detector(debug_image)
 
         if len(detected_boxes) > 0:
-          
+            
             scores = np.array([box.score for box in detected_boxes])
             bboxes = np.array([[box.x1, box.y1, box.x2, box.y2] for box in detected_boxes])
             classes = np.array([box.classid for box in detected_boxes])
@@ -309,6 +310,7 @@ class BoTSORT(object):
         '''Extract embeddings '''
         features_keep = self.encoder.inference(img, dets)
 
+        # 現在のフレームで検出されたトラックを作成
         if len(dets) > 0:
             '''Detections'''
             detections = [STrack(STrack.tlbr_to_tlwh(tlbr), s, f) for
@@ -317,8 +319,8 @@ class BoTSORT(object):
             detections = []
 
         ''' Add newly detected tracklets to tracked_stracks'''
-        unconfirmed = []
-        tracked_stracks = []  # type: list[STrack]
+        unconfirmed: List[STrack] = []
+        tracked_stracks: List[STrack] = []
         for track in self.tracked_stracks:
             if not track.is_activated:
                 unconfirmed.append(track)
@@ -337,16 +339,24 @@ class BoTSORT(object):
         # STrack.multi_gmc(unconfirmed, warp)
 
         # Associate with high score detection boxes
+        # 各既存のトラックと検出されたオブジェクト間のIoU距離を計算
         ious_dists = matching.iou_distance(strack_pool, detections)
+        # 計算されたIoU距離が閾値を超える場合は，それら距離をマスクする
         ious_dists_mask = (ious_dists > self.proximity_thresh)
 
-        # if not self.args.mot20:
+        # # if not self.args.mot20:
         ious_dists = matching.fuse_score(ious_dists, detections)
 
+        # 各既存のトラックと検出されたオブジェクト間の特徴量距離を計算
         emb_dists = matching.embedding_distance(strack_pool, detections) / 2.0
         raw_emb_dists = emb_dists.copy()
+        # 埋め込み距離が外観閾値より大きい場合は，それら距離をマスクする
+        # これにより，外観が大きく異なるオブジェクト間のマッチングを防ぐ
         emb_dists[emb_dists > self.appearance_thresh] = 1.0
         emb_dists[ious_dists_mask] = 1.0
+        
+        # IoU距離と埋め込み距離の最小値を計算
+        # これにより，位置と外観の両方で高い類似性を持つオブジェクトがマッチングの候補となる．
         dists = np.minimum(ious_dists, emb_dists)
 
         matches, u_track, u_detection = matching.linear_assignment(dists, thresh=self.match_thresh)
@@ -378,7 +388,7 @@ class BoTSORT(object):
         if len(dets_second) > 0:
             '''Detections'''
             detections_second = [STrack(STrack.tlbr_to_tlwh(tlbr), s) for
-                                 (tlbr, s) in zip(dets_second, scores_second)]
+                                    (tlbr, s) in zip(dets_second, scores_second)]
         else:
             detections_second = []
 

@@ -19,6 +19,7 @@ class FastReIDModelType:
     MOT17 = "MOT17"
     MOT20 = "MOT20"
     Market1501 = "Market1501"
+    DukeMTMC = "DukeMTMC"  
     
     def __init__(self, path_model: str, model_type: str):
         self.path_model: str = path_model
@@ -36,6 +37,11 @@ class FastReIDModelType:
             "Market1501": {
                 "config": os.path.join(path_model, "fast_reid/configs/Market1501/bagtricks_R101-ibn.yml"),
                 "checkpoint": os.path.join(path_model, "fast_reid/market_bot_R101-ibn.pth")
+            
+            },
+            "DukeMTMC": {
+                "config": os.path.join(path_model, "fast_reid/configs/DukeMTMC/bagtricks_R101-ibn.yml"),
+                "checkpoint": os.path.join(path_model, "fast_reid/duke_bot_R101-ibn.pth")
             
             }
         }
